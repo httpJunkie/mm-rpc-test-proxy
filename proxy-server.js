@@ -29,8 +29,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware to simulate 403 for eth_getTransactionReceipt
+// Middleware to handle special cases and simulate 403 for eth_getTransactionReceipt
 app.use('/rpc', (req, res, next) => {
+  // Return our custom chain ID
+  if (req.body && req.body.method === 'eth_chainId') {
+    console.log(`🔗 Returning custom Chain ID: 9999`);
+    return res.json({
+      jsonrpc: '2.0',
+      id: req.body.id,
+      result: '0x270f' // 9999 in hex
+    });
+  }
+
+  // Block eth_getTransactionReceipt
   if (req.body && req.body.method === 'eth_getTransactionReceipt') {
     console.log(`🚫 BLOCKING eth_getTransactionReceipt for tx: ${req.body.params?.[0]}`);
     console.log(`⚠️  This should cause MetaMask to retry indefinitely!`);
@@ -48,7 +59,7 @@ app.use('/rpc', (req, res, next) => {
 
 // Proxy all other requests to a real Ethereum RPC
 const rpcProxy = createProxyMiddleware({
-  target: 'https://mainnet.infura.io/v3/[INFURA-KEY]',
+  target: 'https://mainnet.infura.io/v3/a15aab43aea047459b33a31e6d967a17',
   changeOrigin: true,
   pathRewrite: { '^/rpc': '' },
   onProxyReq: (proxyReq, req, res) => {
